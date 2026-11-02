@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gabin Dar Management - Kas Cloud & HPP</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        gabin: {
+                            50: '#fcf9f5',
+                            100: '#faebd7',
+                            200: '#f5d5b3',
+                            500: '#d98a3c',
+                            600: '#b86b24',
+                            800: '#5c3317',
+                            900: '#3d1f09',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcf9f5; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #faebd7; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d98a3c; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col relative pb-12">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 z-50 bg-gabin-900 flex flex-col items-center justify-center text-white transition-opacity duration-300">
+        <div class="w-16 h-16 bg-gabin-500 rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-xl animate-bounce">🧇</div>
+        <h2 class="text-xl font-black tracking-tight">GabinDar<span class="text-gabin-500">.Kas</span></h2>
+        <p id="loading-text" class="text-xs text-gabin-200 mt-1 font-medium animate-pulse">Menghubungkan ke Realtime Cloud...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-xs pointer-events-none"></div>
+
+    <!-- Header / Navbar -->
+    <header class="bg-gabin-900 text-white shadow-md sticky top-0 z-40 border-b-4 border-gabin-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-gabin-500 to-amber-300 w-11 h-11 rounded-2xl flex items-center justify-center text-gabin-900 text-2xl font-black shadow-md">
+                    🧇
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-extrabold tracking-wide text-white leading-none">Gabin Dar Management</h1>
+                        <span class="text-[9px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-extrabold tracking-wider uppercase flex items-center gap-1 shadow-sm">
+                            <i class="fa-solid fa-cloud"></i> Cloud Sync
+                        </span>
+                    </div>
+                    <p class="text-xs text-gabin-200 mt-0.5">Sistem Pencatatan Kas, Laporan WA & Kalkulator HPP</p>
+                </div>
+            </div>
+
+            <!-- Input WA Owner -->
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <div class="relative w-full sm:w-52">
+                    <span class="absolute left-3 top-2.5 text-gabin-500 text-xs"><i class="fa-brands fa-whatsapp"></i></span>
+                    <input type="text" id="noWaOwner" placeholder="No WA (cth: 628123...)" class="w-full pl-8 pr-3 py-2 text-xs rounded-xl text-slate-800 bg-gabin-50 border border-gabin-300 focus:outline-none focus:ring-2 focus:ring-gabin-500 font-semibold" />
+                </div>
+                <button onclick="window.simpanNoWa()" class="bg-gabin-500 hover:bg-gabin-600 text-gabin-900 font-extrabold text-xs px-3.5 py-2 rounded-xl transition shadow-md whitespace-nowrap">
+                    Simpan WA
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6 flex-grow w-full">
+
+        <!-- 4 Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Pemasukan -->
+            <div class="bg-emerald-50/80 border border-emerald-200 p-5 rounded-[2rem] shadow-sm flex flex-col justify-between relative overflow-hidden group">
+                <div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Total Pemasukan</span>
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm shadow-sm"><i class="fa-solid fa-arrow-down-left"></i></div>
+                    </div>
+                    <h2 id="txtPemasukan" class="text-2xl font-black text-emerald-950 mt-2">Rp 0</h2>
+                </div>
+                <div class="mt-4 flex items-center justify-between text-xs text-emerald-700 font-medium">
+                    <span id="countPemasukan">0 transaksi masuk</span>
+                    <span class="bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-md font-bold text-[10px]">Masuk</span>
+                </div>
+            </div>
+
+            <!-- Total Pengeluaran -->
+            <div class="bg-rose-50/80 border border-rose-200 p-5 rounded-[2rem] shadow-sm flex flex-col justify-between relative overflow-hidden group">
+                <div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-rose-800 uppercase tracking-wider">Total Pengeluaran</span>
+                        <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-sm shadow-sm"><i class="fa-solid fa-arrow-up-right"></i></div>
+                    </div>
+                    <h2 id="txtPengeluaran" class="text-2xl font-black text-rose-950 mt-2">Rp 0</h2>
+                </div>
+                <div class="mt-4 flex items-center justify-between text-xs text-rose-700 font-medium">
+                    <span id="countPengeluaran">0 item biaya</span>
+                    <span class="bg-rose-200/80 text-rose-900 px-2 py-0.5 rounded-md font-bold text-[10px]">Keluar</span>
+                </div>
+            </div>
+
+            <!-- SALDO (Replaces Laba Bersih) -->
+            <div class="bg-gradient-to-br from-[#fef08a] to-amber-400 border border-amber-300 p-5 rounded-[2rem] shadow-sm flex flex-col justify-between text-gabin-900 relative overflow-hidden">
+                <div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-gabin-900 uppercase tracking-wider">SALDO</span>
+                        <div class="w-9 h-9 rounded-xl bg-white/40 text-gabin-900 flex items-center justify-center text-sm shadow-sm"><i class="fa-solid fa-wallet"></i></div>
+                    </div>
+                    <h2 id="txtSaldo" class="text-2xl font-black text-gabin-900 mt-2">Rp 0</h2>
+                </div>
+                <div class="mt-4 flex items-center justify-between text-xs text-gabin-900 font-bold">
+                    <span id="statusSaldo">Uang Kas Saat Ini</span>
+                    <span class="bg-white/60 text-gabin-900 px-2 py-0.5 rounded-md font-extrabold text-[10px]">Aktif</span>
+                </div>
+            </div>
+
+            <!-- Target Sales Hari Ini (Dark Card) -->
+            <div onclick="window.bukaModalTarget()" class="bg-gradient-to-br from-gabin-900 to-[#251305] text-white p-5 rounded-[2rem] shadow-sm flex flex-col justify-between cursor-pointer hover:shadow-lg transition group border border-gabin-800" title="Klik untuk atur target sales">
+                <div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-gabin-200 uppercase tracking-wider">Target Sales Hari Ini</span>
+                        <span class="text-[10px] bg-white/10 hover:bg-white/20 text-amber-300 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-pen-to-square"></i> Ubah
+                        </span>
+                    </div>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <h2 id="txtTargetPersen" class="text-2xl font-black text-white">0%</h2>
+                        <span id="txtTargetBadge" class="text-[10px] bg-black/40 text-amber-300 px-2 py-0.5 rounded font-bold">Proses</span>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="w-full bg-black/50 rounded-full h-2 overflow-hidden border border-white/10">
+                        <div id="progressBar" class="bg-gradient-to-r from-amber-400 to-amber-300 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <p class="text-[10px] text-gabin-200 mt-1.5 flex justify-between font-medium">
+                        <span id="txtTargetNominal">Terkumpul: Rp 0</span>
+                        <span id="txtTargetMax">Target: Rp 2.000.000</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Input Transaksi & Grafik -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Form Catat Transaksi Baru -->
+            <div class="lg:col-span-4 bg-white p-6 rounded-[2rem] shadow-sm border border-gabin-100 flex flex-col">
+                <h3 class="text-base font-bold text-gabin-900 flex items-center gap-2 mb-4 pb-3 border-b border-gabin-50">
+                    <span class="w-7 h-7 bg-gabin-100 text-gabin-600 rounded-full flex items-center justify-center text-xs"><i class="fa-solid fa-pen"></i></span>
+                    Catat Transaksi Baru
+                </h3>
+                <form id="formTransaksi" onsubmit="window.tambahTransaksi(event)" class="space-y-4 flex-grow">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Tipe Transaksi</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 border-emerald-100 bg-emerald-50/50 cursor-pointer text-xs font-bold text-emerald-800 transition has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-100">
+                                <input type="radio" name="tipe" value="Pemasukan" checked onchange="window.updateKategoriOptions()" class="hidden"> 
+                                <i class="fa-solid fa-circle-arrow-down text-emerald-600"></i> Pemasukan
+                            </label>
+                            <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 border-rose-100 bg-rose-50/50 cursor-pointer text-xs font-bold text-rose-800 transition has-[:checked]:border-rose-500 has-[:checked]:bg-rose-100">
+                                <input type="radio" name="tipe" value="Pengeluaran" onchange="window.updateKategoriOptions()" class="hidden"> 
+                                <i class="fa-solid fa-circle-arrow-up text-rose-600"></i> Pengeluaran
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Nominal (Rp)</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-2.5 font-bold text-xs text-gabin-500">Rp</span>
+                            <input type="text" id="nominal" required placeholder="0" onkeyup="window.formatRupiahInput(this)" class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gabin-200 bg-gabin-50/40 focus:outline-none focus:border-gabin-500 text-xs font-bold text-gabin-900">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Kategori</label>
+                        <select id="kategori" required class="w-full px-3 py-2.5 rounded-xl border border-gabin-200 bg-gabin-50/40 focus:outline-none focus:border-gabin-500 text-xs font-semibold text-gabin-900">
+                            <!-- JS Injected -->
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Tanggal</label>
+                            <input type="date" id="tanggal" required class="w-full px-3 py-2.5 rounded-xl border border-gabin-200 bg-gabin-50/40 focus:outline-none focus:border-gabin-500 text-xs font-medium text-gabin-900">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Keterangan</label>
+                            <input type="text" id="keterangan" placeholder="cth: 5 porsi Cokelat" class="w-full px-3 py-2.5 rounded-xl border border-gabin-200 bg-gabin-50/40 focus:outline-none focus:border-gabin-500 text-xs font-medium text-gabin-900">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSubmitTx" class="w-full py-3.5 bg-gabin-500 hover:bg-gabin-600 active:scale-[0.99] text-gabin-900 font-extrabold rounded-xl shadow-md transition duration-200 text-xs flex items-center justify-center gap-2 mt-2">
+                        <span>💾 Simpan & Kirim ke WA</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Grafik Arus Kas -->
+            <div class="lg:col-span-8 bg-white p-6 rounded-[2rem] shadow-sm border border-gabin-100 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-gabin-50">
+                        <div>
+                            <h3 class="text-base font-bold text-gabin-900">📊 Grafik Perbandingan Arus Kas</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Visualisasi Pemasukan vs Pengeluaran vs Saldo</p>
+                        </div>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Realtime
+                        </span>
+                    </div>
+                    <div class="h-60 sm:h-64 relative">
+                        <canvas id="chartArusKas"></canvas>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-gabin-50 flex justify-between items-center text-xs text-slate-500">
+                    <span>Rekapitulasi transaksi tersimpan aman di Cloud Firebase.</span>
+                    <button onclick="window.exportCSV()" class="px-3.5 py-2 bg-gabin-100 hover:bg-gabin-200 text-gabin-900 rounded-xl font-bold transition text-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-csv"></i> Unduh CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Riwayat Transaksi -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gabin-100">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-gabin-50">
+                <div>
+                    <h3 class="text-base font-bold text-gabin-900 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-gabin-500"></i> Riwayat Transaksi Terbaru
+                    </h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Daftar transaksi kas masuk & keluar Gabin Dar yang tersinkronisasi</p>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <label class="text-xs font-bold text-slate-500 whitespace-nowrap">Filter:</label>
+                    <select id="filterKategori" onchange="window.renderTabel()" class="px-3 py-2 text-xs rounded-xl border border-gabin-200 bg-gabin-50/50 focus:outline-none focus:border-gabin-500 font-semibold w-full sm:w-48 text-gabin-900">
+                        <option value="Semua">Semua Kategori</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-gabin-100 text-[11px] font-extrabold text-slate-400 uppercase tracking-wider bg-gabin-50/50">
+                            <th class="py-3 px-4">Tanggal</th>
+                            <th class="py-3 px-4">Tipe</th>
+                            <th class="py-3 px-4">Kategori</th>
+                            <th class="py-3 px-4">Keterangan</th>
+                            <th class="py-3 px-4 text-right">Nominal (Rp)</th>
+                            <th class="py-3 px-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelTransaksiBody" class="divide-y divide-gabin-50">
+                        <!-- JS Injected -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- KALKULATOR HPP & LABA (TERLETAK DI PALING BAWAH HALAMAN) -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gabin-100">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 pb-4 border-b border-gabin-50">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gabin-100 p-3 rounded-2xl text-gabin-800 text-xl font-black">🧮</div>
+                    <div>
+                        <h3 class="text-base font-bold text-gabin-900">Kalkulator HPP & Laba per Porsi Gabin Dar</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Hitung modal bahan baku, kemasan, dan tentukan harga jual ideal untuk mendapatkan laba bersih.</p>
+                    </div>
+                </div>
+                <button onclick="window.simpanHPPCloud()" id="btnSaveHPP" class="px-4 py-2 bg-gabin-100 hover:bg-gabin-200 text-gabin-900 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Simpan HPP ke Cloud
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Total Biaya Bahan Baku (Rp)</label>
+                    <input type="text" id="hppBahan" placeholder="Cth: 75.000" onkeyup="window.formatRupiahInput(this)" oninput="window.hitungHPP()" class="w-full px-3.5 py-2.5 rounded-xl border border-gabin-200 bg-gabin-50/40 text-xs font-bold text-gabin-900">
+                    <span class="text-[10px] text-slate-400 mt-1 block">Biskuit, Vla, Mentega, Topping</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Total Biaya Kemasan (Rp)</label>
+                    <input type="text" id="hppKemasan" placeholder="Cth: 15.000" onkeyup="window.formatRupiahInput(this)" oninput="window.hitungHPP()" class="w-full px-3.5 py-2.5 rounded-xl border border-gabin-200 bg-gabin-50/40 text-xs font-bold text-gabin-900">
+                    <span class="text-[10px] text-slate-400 mt-1 block">Box, Stiker, Plastik</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Jumlah Porsi yang Dihasilkan</label>
+                    <input type="number" id="hppJumlahPorsi" placeholder="Cth: 20" value="20" oninput="window.hitungHPP()" class="w-full px-3.5 py-2.5 rounded-xl border border-gabin-200 bg-gabin-50/40 text-xs font-bold text-gabin-900">
+                    <span class="text-[10px] text-slate-400 mt-1 block">Total porsi dari bahan di samping</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Rencana Harga Jual / Porsi (Rp)</label>
+                    <input type="text" id="hppHargaJual" placeholder="Cth: 8.000" onkeyup="window.formatRupiahInput(this)" oninput="window.hitungHPP()" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50/40 text-xs font-black text-emerald-800">
+                    <span class="text-[10px] text-slate-400 mt-1 block">Harga jual ke pembeli</span>
+                </div>
+            </div>
+
+            <!-- Hasil Kalkulasi -->
+            <div class="bg-gabin-50/60 border border-gabin-200 p-5 rounded-2xl grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gabin-100">
+                    <p class="text-xs text-slate-500 font-semibold">HPP / Modal per Porsi</p>
+                    <h4 id="resHppPorsi" class="text-lg font-black text-rose-600 mt-1">Rp 0</h4>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                    <p class="text-xs text-slate-500 font-semibold">Laba Bersih per Porsi</p>
+                    <h4 id="resLabaPorsi" class="text-lg font-black text-emerald-700 mt-1">Rp 0</h4>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-100">
+                    <p class="text-xs text-slate-500 font-semibold">Margin Keuntungan</p>
+                    <h4 id="resMargin" class="text-lg font-black text-gabin-900 mt-1">0%</h4>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Target Sales -->
+    <div id="modalTarget" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white max-w-sm w-full p-6 rounded-[2rem] shadow-xl space-y-4">
+            <div class="flex items-center gap-3 border-b border-gabin-50 pb-3">
+                <div class="w-10 h-10 bg-gabin-100 text-gabin-600 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-bullseye"></i></div>
+                <div>
+                    <h3 class="text-base font-bold text-gabin-900">Atur Target Sales</h3>
+                    <p class="text-xs text-slate-500">Tentukan target omset harian Gabin Dar</p>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Nominal Target Sales Harian (Rp)</label>
+                <input type="text" id="inputTargetModal" placeholder="2.000.000" onkeyup="window.formatRupiahInput(this)" class="w-full px-3.5 py-2.5 rounded-xl border border-gabin-200 bg-gabin-50/50 text-sm font-bold text-gabin-900 focus:outline-none focus:border-gabin-500">
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="window.tutupModalTarget()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">Batal</button>
+                <button onclick="window.simpanTargetBaru()" id="btnSaveTarget" class="flex-1 py-2.5 bg-gabin-500 hover:bg-gabin-600 text-gabin-900 rounded-xl text-xs font-extrabold shadow-md">Simpan Target</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus -->
+    <div id="modalHapus" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white max-w-xs w-full p-6 rounded-[2rem] shadow-xl text-center space-y-4">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-base font-bold text-gabin-900">Hapus Transaksi?</h3>
+            <p class="text-xs text-slate-500">Data yang dihapus akan terhapus dari Cloud secara permanen.</p>
+            <div class="flex gap-2 pt-2">
+                <button onclick="window.tutupModalHapus()" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold">Batal</button>
+                <button onclick="window.eksekusiHapus()" id="btnConfirmDelete" class="flex-1 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold shadow">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Application Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global State
+        let app, db, auth;
+        let transaksiList = [];
+        let targetSales = 2000000;
+        let noWaOwner = localStorage.getItem('gabin_dar_wa_owner') || '';
+        let hapusDocId = null;
+        let myChart = null;
+        let isCloudAvailable = false;
+
+        const opsiKategori = {
+            Pemasukan: [
+                "Penjualan Gabin Dar",
+                "Penjualan Gabin Tape",
+                "Paket Bundling",
+                "Orderan Online (GoFood/Grab/Shopee)",
+                "Event",
+                "Pemasukan Lainnya"
+            ],
+            Pengeluaran: [
+                "Bahan Baku",
+                "Topping & Melt",
+                "Kemasan & Stiker",
+                "Gas & Listrik",
+                "Sewa Tempat",
+                "Gaji / Komisi Karyawan",
+                "Iklan & Promosi",
+                "Pengeluaran Lainnya"
+            ]
+        };
+
+        // Environment Firebase Config Guardrail
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gabin-dar-kas';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        // Initialize App & Storage
+        async function initApp() {
+            document.getElementById('noWaOwner').value = noWaOwner;
+            document.getElementById('tanggal').valueAsDate = new Date();
+            
+            window.updateKategoriOptions();
+            window.updateFilterDropdown();
+            initChart();
+
+            // Try Firebase connection if config is provided
+            if (firebaseConfig && firebaseConfig.apiKey !== "mock-api-key") {
+                try {
+                    app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    isCloudAvailable = true;
+                    listenToCloudData();
+                    loadCloudSettings();
+                } catch (error) {
+                    console.warn("Firebase fallback to LocalStorage:", error);
+                    loadLocalData();
+                }
+            } else {
+                // Fallback to LocalStorage mode if Firebase isn't configured yet
+                loadLocalData();
+            }
+
+            // Hide loading screen
+            setTimeout(() => {
+                const ls = document.getElementById('loading-screen');
+                if (ls) {
+                    ls.classList.add('opacity-0');
+                    setTimeout(() => ls.style.display = 'none', 300);
+                }
+            }, 500);
+        }
+
+        function loadLocalData() {
+            isCloudAvailable = false;
+            const savedTx = localStorage.getItem('gabin_dar_transaksi');
+            if (savedTx) {
+                try { transaksiList = JSON.parse(savedTx); } catch(e){ transaksiList = []; }
+            }
+            const savedTarget = localStorage.getItem('gabin_dar_target');
+            if (savedTarget) targetSales = parseInt(savedTarget) || 2000000;
+
+            const savedHpp = localStorage.getItem('gabin_dar_hpp');
+            if (savedHpp) {
+                try {
+                    const h = JSON.parse(savedHpp);
+                    if (h.bahan) document.getElementById('hppBahan').value = formatRupiah(h.bahan).replace('Rp ', '');
+                    if (h.kemasan) document.getElementById('hppKemasan').value = formatRupiah(h.kemasan).replace('Rp ', '');
+                    if (h.porsi) document.getElementById('hppJumlahPorsi').value = h.porsi;
+                    if (h.hargaJual) document.getElementById('hppHargaJual').value = formatRupiah(h.hargaJual).replace('Rp ', '');
+                    window.hitungHPP();
+                } catch(e){}
+            }
+            renderUI();
+        }
+
+        function saveLocalData() {
+            localStorage.setItem('gabin_dar_transaksi', JSON.stringify(transaksiList));
+            localStorage.setItem('gabin_dar_target', targetSales.toString());
+        }
+
+        // Strict Firestore Path: /artifacts/{appId}/public/data/transactions
+        function listenToCloudData() {
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'transactions');
+            onSnapshot(colRef, (snapshot) => {
+                transaksiList = snapshot.docs.map(doc => ({
+                    firebaseId: doc.id,
+                    ...doc.data()
+                }));
+
+                // In-Memory Sorting by date desc, then by createdAt desc
+                transaksiList.sort((a, b) => {
+                    const dateA = new Date(a.tanggal).getTime();
+                    const dateB = new Date(b.tanggal).getTime();
+                    if (dateA !== dateB) return dateB - dateA;
+                    return (b.createdAt || 0) - (a.createdAt || 0);
+                });
+
+                renderUI();
+            }, (error) => {
+                console.error("Firestore error, switching to local state:", error);
+                loadLocalData();
+            });
+        }
+
+        async function loadCloudSettings() {
+            try {
+                const configDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+                const docSnap = await getDoc(configDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.targetSales) targetSales = data.targetSales;
+                    if (data.noWaOwner) {
+                        noWaOwner = data.noWaOwner;
+                        document.getElementById('noWaOwner').value = noWaOwner;
+                    }
+                    if (data.hpp) {
+                        if (data.hpp.bahan) document.getElementById('hppBahan').value = formatRupiah(data.hpp.bahan).replace('Rp ', '');
+                        if (data.hpp.kemasan) document.getElementById('hppKemasan').value = formatRupiah(data.hpp.kemasan).replace('Rp ', '');
+                        if (data.hpp.porsi) document.getElementById('hppJumlahPorsi').value = data.hpp.porsi;
+                        if (data.hpp.hargaJual) document.getElementById('hppHargaJual').value = formatRupiah(data.hpp.hargaJual).replace('Rp ', '');
+                        window.hitungHPP();
+                    }
+                    renderUI();
+                }
+            } catch (err) {
+                console.error("Config load error:", err);
+            }
+        }
+
+        // Window Exports for DOM Elements
+        window.simpanNoWa = async function() {
+            noWaOwner = document.getElementById('noWaOwner').value.trim();
+            localStorage.setItem('gabin_dar_wa_owner', noWaOwner);
+            if (isCloudAvailable) {
+                try {
+                    const configDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+                    await setDoc(configDocRef, { noWaOwner: noWaOwner }, { merge: true });
+                } catch (e) {}
+            }
+            showToast("Nomor WhatsApp berhasil disimpan!");
+        };
+
+        window.updateKategoriOptions = function() {
+            const tipe = document.querySelector('input[name="tipe"]:checked').value;
+            const selectKat = document.getElementById('kategori');
+            selectKat.innerHTML = '';
+            opsiKategori[tipe].forEach(kat => {
+                let opt = document.createElement('option');
+                opt.value = kat;
+                opt.textContent = kat;
+                selectKat.appendChild(opt);
+            });
+        };
+
+        window.updateFilterDropdown = function() {
+            const filterKat = document.getElementById('filterKategori');
+            let currentVal = filterKat.value;
+            filterKat.innerHTML = '<option value="Semua">Semua Kategori</option>';
+            let allCats = [...opsiKategori.Pemasukan, ...opsiKategori.Pengeluaran];
+            allCats.forEach(kat => {
+                let opt = document.createElement('option');
+                opt.value = kat;
+                opt.textContent = kat;
+                filterKat.appendChild(opt);
+            });
+            filterKat.value = currentVal || "Semua";
+        };
+
+        window.formatRupiahInput = function(input) {
+            let angka = input.value.replace(/[^,\d]/g, '').toString();
+            let split = angka.split(',');
+            let sisa = split[0].length % 3;
+            let rupiah = split[0].substr(0, sisa);
+            let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+            if (ribuan) {
+                let separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
+            input.value = rupiah;
+        };
+
+        function getCleanNumber(stringId) {
+            let val = document.getElementById(stringId).value;
+            return parseInt(val.replace(/\./g, '')) || 0;
+        }
+
+        function formatRupiah(angka) {
+            return 'Rp ' + Number(angka || 0).toLocaleString('id-ID');
+        }
+
+        window.tambahTransaksi = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitTx');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+            btn.disabled = true;
+
+            const tipe = document.querySelector('input[name="tipe"]:checked').value;
+            const nominal = getCleanNumber('nominal');
+            const kategori = document.getElementById('kategori').value;
+            const tanggal = document.getElementById('tanggal').value;
+            const keterangan = document.getElementById('keterangan').value || '-';
+
+            if (!nominal || nominal <= 0) {
+                showToast("Nominal harus lebih besar dari Rp 0", "error");
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                return;
+            }
+
+            const txData = {
+                tipe,
+                nominal,
+                kategori,
+                tanggal,
+                keterangan,
+                createdAt: Date.now()
+            };
+
+            try {
+                if (isCloudAvailable) {
+                    const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'transactions');
+                    await addDoc(colRef, txData);
+                } else {
+                    txData.id = Date.now();
+                    transaksiList.unshift(txData);
+                    saveLocalData();
+                    renderUI();
+                }
+
+                // Reset inputs
+                document.getElementById('nominal').value = '';
+                document.getElementById('keterangan').value = '';
+                document.getElementById('tanggal').valueAsDate = new Date();
+
+                showToast("Transaksi Gabin Dar berhasil dicatat!");
+                
+                // Trigger WA notification
+                kirimNotifWA(txData);
+            } catch (err) {
+                console.error("Add tx error:", err);
+                showToast("Gagal menyimpan transaksi", "error");
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        };
+
+        function kirimNotifWA(tx) {
+            let targetWa = noWaOwner || document.getElementById('noWaOwner').value.trim();
+            if (!targetWa) {
+                showToast("Transaksi disimpan! (Isi No WA di header untuk kirim otomatis ke WA)");
+                return;
+            }
+
+            // Clean phone number format
+            if (targetWa.startsWith('0')) {
+                targetWa = '62' + targetWa.substring(1);
+            }
+
+            let totalIn = 0, totalOut = 0;
+            transaksiList.forEach(t => {
+                if (t.tipe === 'Pemasukan') totalIn += t.nominal;
+                else totalOut += t.nominal;
+            });
+            let saldoAkhir = totalIn - totalOut;
+
+            let pesan = `📊 *LAPORAN KAS GABIN DAR*%0A%0A` +
+                        `*Tipe:* ${tx.tipe}%0A` +
+                        `*Kategori:* ${tx.kategori}%0A` +
+                        `*Nominal:* ${formatRupiah(tx.nominal)}%0A` +
+                        `*Tanggal:* ${tx.tanggal}%0A` +
+                        `*Keterangan:* ${tx.keterangan}%0A%0A` +
+                        `--------------------------%0A` +
+                        `💰 *SALDO TERBARU:* ${formatRupiah(saldoAkhir)}`;
+
+            window.open(`https://api.whatsapp.com/send?phone=${targetWa}&text=${pesan}`, '_blank');
+        }
+
+        window.bukaModalHapus = function(id) {
+            hapusDocId = id;
+            document.getElementById('modalHapus').classList.remove('hidden');
+        };
+
+        window.tutupModalHapus = function() {
+            document.getElementById('modalHapus').classList.add('hidden');
+            hapusDocId = null;
+        };
+
+        window.eksekusiHapus = async function() {
+            if (!hapusDocId) return;
+            const btn = document.getElementById('btnConfirmDelete');
+            btn.innerText = "Menghapus...";
+            try {
+                if (isCloudAvailable) {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'transactions', hapusDocId);
+                    await deleteDoc(docRef);
+                } else {
+                    transaksiList = transaksiList.filter(t => t.id !== hapusDocId && t.firebaseId !== hapusDocId);
+                    saveLocalData();
+                    renderUI();
+                }
+                showToast("Transaksi berhasil dihapus");
+            } catch (err) {
+                showToast("Gagal menghapus", "error");
+            } finally {
+                btn.innerText = "Ya, Hapus";
+                window.tutupModalHapus();
+            }
+        };
+
+        function renderUI() {
+            let totalIn = 0;
+            let totalOut = 0;
+            let countIn = 0;
+            let countOut = 0;
+
+            transaksiList.forEach(t => {
+                if (t.tipe === 'Pemasukan') {
+                    totalIn += t.nominal;
+                    countIn++;
+                } else {
+                    totalOut += t.nominal;
+                    countOut++;
+                }
+            });
+
+            let saldo = totalIn - totalOut;
+
+            document.getElementById('txtPemasukan').innerText = formatRupiah(totalIn);
+            document.getElementById('txtPengeluaran').innerText = formatRupiah(totalOut);
+            document.getElementById('txtSaldo').innerText = formatRupiah(saldo);
+
+            document.getElementById('countPemasukan').innerText = `${countIn} transaksi masuk`;
+            document.getElementById('countPengeluaran').innerText = `${countOut} item biaya`;
+
+            // Progress Target
+            let persen = 0;
+            if (targetSales > 0) {
+                persen = Math.round((totalIn / targetSales) * 100);
+            }
+            if (persen > 100) persen = 100;
+
+            document.getElementById('txtTargetPersen').innerText = persen + '%';
+            document.getElementById('progressBar').style.width = persen + '%';
+            document.getElementById('txtTargetNominal').innerText = `Terkumpul: ${formatRupiah(totalIn)}`;
+            document.getElementById('txtTargetMax').innerText = `Target: ${formatRupiah(targetSales)}`;
+
+            const badge = document.getElementById('txtTargetBadge');
+            if (persen >= 100) {
+                badge.innerText = "Tercapai 🎉";
+                badge.className = "text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded font-bold";
+            } else {
+                badge.innerText = "Proses";
+                badge.className = "text-[10px] bg-black/40 text-amber-300 px-2 py-0.5 rounded font-bold";
+            }
+
+            // Render Table & Chart
+            window.renderTabel();
+            updateChartData(totalIn, totalOut, saldo);
+        }
+
+        window.renderTabel = function() {
+            const filterKat = document.getElementById('filterKategori').value;
+            const tbody = document.getElementById('tabelTransaksiBody');
+            tbody.innerHTML = '';
+
+            let filtered = transaksiList.filter(t => filterKat === 'Semua' || t.kategori === filterKat);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400 font-medium">Belum ada transaksi Gabin Dar pada kategori ini.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(t => {
+                let badgeColor = t.tipe === 'Pemasukan' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800';
+                let icon = t.tipe === 'Pemasukan' ? 'fa-arrow-down' : 'fa-arrow-up';
+                let idRef = t.firebaseId || t.id;
+                let tr = document.createElement('tr');
+                tr.className = "border-b border-gabin-50 hover:bg-gabin-50/50 transition";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-medium text-slate-500 whitespace-nowrap">${t.tanggal}</td>
+                    <td class="py-3 px-4 whitespace-nowrap">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${badgeColor} inline-flex items-center gap-1">
+                            <i class="fa-solid ${icon}"></i> ${t.tipe}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-bold text-gabin-900 whitespace-nowrap">${t.kategori}</td>
+                    <td class="py-3 px-4 text-slate-600 max-w-[150px] truncate" title="${t.keterangan}">${t.keterangan}</td>
+                    <td class="py-3 px-4 text-right font-black whitespace-nowrap ${t.tipe === 'Pemasukan' ? 'text-emerald-600' : 'text-rose-600'}">
+                        ${t.tipe === 'Pemasukan' ? '+' : '-'}${formatRupiah(t.nominal)}
+                    </td>
+                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                        <button onclick="window.bukaModalHapus('${idRef}')" title="Hapus" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-100 hover:text-rose-600 text-slate-400 transition inline-flex items-center justify-center">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        function initChart() {
+            const ctx = document.getElementById('chartArusKas').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Pemasukan', 'Pengeluaran', 'Saldo'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#10b981', '#f43f5e', '#d98a3c'],
+                        borderRadius: 10,
+                        barThickness: 'flex',
+                        maxBarThickness: 55
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (ctx) => ' ' + formatRupiah(ctx.raw) } }
+                    },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            ticks: { font: { size: 10 }, callback: (val) => {
+                                if(val >= 1000000) return 'Rp' + (val/1000000).toFixed(1) + 'M';
+                                if(val >= 1000) return 'Rp' + (val/1000).toFixed(0) + 'k';
+                                return 'Rp' + val;
+                            }}
+                        },
+                        x: { ticks: { font: { size: 11, weight: 'bold' } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function updateChartData(pemasukan, pengeluaran, saldo) {
+            if (myChart) {
+                myChart.data.datasets[0].data = [pemasukan, pengeluaran, saldo];
+                myChart.update();
+            }
+        }
+
+        // Modals & Target
+        window.bukaModalTarget = function() {
+            document.getElementById('inputTargetModal').value = formatRupiah(targetSales).replace('Rp ', '');
+            document.getElementById('modalTarget').classList.remove('hidden');
+        };
+
+        window.tutupModalTarget = function() {
+            document.getElementById('modalTarget').classList.add('hidden');
+        };
+
+        window.simpanTargetBaru = async function() {
+            let val = getCleanNumber('inputTargetModal') || 2000000;
+            const btn = document.getElementById('btnSaveTarget');
+            btn.innerText = "Menyimpan...";
+            try {
+                targetSales = val;
+                if (isCloudAvailable) {
+                    const configDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+                    await setDoc(configDocRef, { targetSales: val }, { merge: true });
+                } else {
+                    saveLocalData();
+                }
+                showToast("Target sales diperbarui!");
+                window.tutupModalTarget();
+                renderUI();
+            } catch (e) {
+                showToast("Gagal menyimpan target", "error");
+            } finally {
+                btn.innerText = "Simpan Target";
+            }
+        };
+
+        // Kalkulator HPP & Laba per Porsi
+        window.hitungHPP = function() {
+            let bahan = getCleanNumber('hppBahan');
+            let kemasan = getCleanNumber('hppKemasan');
+            let porsi = parseInt(document.getElementById('hppJumlahPorsi').value) || 1;
+            let hargaJual = getCleanNumber('hppHargaJual');
+
+            let totalModal = bahan + kemasan;
+            let hppPerPorsi = porsi > 0 ? Math.round(totalModal / porsi) : 0;
+            let labaPerPorsi = hargaJual > 0 ? (hargaJual - hppPerPorsi) : 0;
+            let margin = hargaJual > 0 ? Math.round((labaPerPorsi / hargaJual) * 100) : 0;
+
+            document.getElementById('resHppPorsi').innerText = formatRupiah(hppPerPorsi);
+            document.getElementById('resLabaPorsi').innerText = formatRupiah(labaPerPorsi);
+            
+            const elMargin = document.getElementById('resMargin');
+            elMargin.innerText = margin + '%';
+            if (margin >= 30) elMargin.className = "text-lg font-black text-emerald-600 mt-1";
+            else if (margin > 0) elMargin.className = "text-lg font-black text-amber-600 mt-1";
+            else elMargin.className = "text-lg font-black text-rose-600 mt-1";
+        };
+
+        window.simpanHPPCloud = async function() {
+            const btn = document.getElementById('btnSaveHPP');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+
+            const hppData = {
+                bahan: getCleanNumber('hppBahan'),
+                kemasan: getCleanNumber('hppKemasan'),
+                porsi: parseInt(document.getElementById('hppJumlahPorsi').value) || 20,
+                hargaJual: getCleanNumber('hppHargaJual')
+            };
+
+            try {
+                if (isCloudAvailable) {
+                    const configDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+                    await setDoc(configDocRef, { hpp: hppData }, { merge: true });
+                } else {
+                    localStorage.setItem('gabin_dar_hpp', JSON.stringify(hppData));
+                }
+                showToast("Kalkulator HPP Gabin Dar berhasil disimpan!");
+            } catch (err) {
+                showToast("Gagal menyimpan HPP", "error");
+            } finally {
+                btn.innerHTML = originalText;
+            }
+        };
+
+        // Export CSV
+        window.exportCSV = function() {
+            if (transaksiList.length === 0) {
+                showToast("Tidak ada data untuk diexport", "error");
+                return;
+            }
+            let csvContent = "\uFEFFTanggal,Tipe,Kategori,Keterangan,Nominal\n";
+            transaksiList.forEach(t => {
+                const safeNotes = `"${t.keterangan.replace(/"/g, '""')}"`;
+                csvContent += `${t.tanggal},${t.tipe},"${t.kategori}",${safeNotes},${t.nominal}\n`;
+            });
+            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `rekap_kas_gabin_dar_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            showToast("File CSV Rekap Kas Gabin Dar berhasil diunduh");
+        };
+
+        function showToast(msg, type = "success") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-gabin-900' : 'bg-rose-600';
+            const icon = type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-triangle-exclamation text-white';
+
+            toast.className = `${bgClass} text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto border border-white/10`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${msg}</span>`;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Run Application
+        initApp();
+    </script>
+</body>
+</html>
